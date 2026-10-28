@@ -59,7 +59,7 @@ def detect_host(system: str | None = None, available=None,
     for line in os_release.splitlines():
         if "=" in line and not line.startswith("#"):
             k, v = line.split("=", 1)
-            data[k] = v.strip().strip('"').lower()
+            data[k.lower()] = v.strip().strip('"').lower()
     distro = data.get("id", "")
     family = (distro + " " + data.get("id_like", "")).split()
     preferred = (
