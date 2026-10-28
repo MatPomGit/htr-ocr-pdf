@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HTR PDF Compare 1.0.0: local, privacy-preserving paired PDF transcription."""
+"""HTR PDF Compare 1.1.0: local, privacy-preserving paired PDF transcription."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 DEFAULT_MODEL = "qwen3-vl:4b"
 DEFAULT_SERVER = "http://127.0.0.1:11434"
 SCHEMA = {
@@ -62,6 +62,7 @@ class Config:
     max_side: int = 2800
     pages: str = ""
     reference: Path | None = None
+    searchable_pdf: bool = True
 
 
 class Cancelled(Exception):
@@ -348,6 +349,7 @@ def compare_documents(config: Config, progress=None, stop: threading.Event | Non
             metrics = pair_metrics(text_a, text_b)
             item = {"page": page_no, "render_dpi": round(dpi), "image_size": list(a.size),
                     "segment_row_boundaries": cuts, "original_text": text_a, "compressed_text": text_b,
+                    "original_segments": chunks_a, "compressed_segments": chunks_b,
                     "comparison": metrics, "image_metrics": pixels}
             if page_no in references:
                 item["reference_text"] = references[page_no]
@@ -393,6 +395,15 @@ def compare_documents(config: Config, progress=None, stop: threading.Event | Non
         config.output.mkdir(parents=True, exist_ok=True)
         (config.output / "results.json").write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
         write_outputs(config.output, output)
+        if config.searchable_pdf:
+            from pdf_tools import export_searchable_pdf
+            for label, src, key in (("original", config.original, "original_text"),
+                                    ("compressed", config.compressed, "compressed_text")):
+                dst = config.output / f"{label}_searchable.pdf"
+                log(f"Zapisuję przeszukiwalny PDF: {dst.name}...")
+                export_searchable_pdf(src, dst, results, key)
+            output["searchable_pdfs"] = ["original_searchable.pdf", "compressed_searchable.pdf"]
+            (config.output / "results.json").write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
         checkpoint.unlink(missing_ok=True)
         log(f"Zakończono. Raport: {config.output / 'report.html'}")
         return output
@@ -480,7 +491,7 @@ def run_gui() -> None:
 
     root = tk.Tk()
     root.title(f"HTR PDF Compare {APP_VERSION} | lokalnie")
-    root.geometry("820x635")
+    root.geometry("820x720")
     frm = ttk.Frame(root, padding=16)
     frm.pack(fill="both", expand=True)
     paths = {name: tk.StringVar() for name in ("original", "compressed", "reference", "output")}
@@ -490,6 +501,8 @@ def run_gui() -> None:
     segments = tk.IntVar(value=2)
     max_side = tk.StringVar(value="2800")
     pages = tk.StringVar(value="")
+    compression_profile = tk.StringVar(value="medium")
+    searchable_pdf = tk.BooleanVar(value=True)
     events: queue.Queue = queue.Queue()
     stop = threading.Event()
     is_running = False
@@ -522,13 +535,20 @@ def run_gui() -> None:
     ttk.Combobox(frm, textvariable=segments, values=[1, 2, 3, 4, 5, 6], state="readonly", width=8).grid(row=7, column=1, sticky="w", padx=8)
     ttk.Label(frm, text="Maksymalny bok renderu (px)").grid(row=8, column=0, sticky="w", pady=7)
     ttk.Entry(frm, textvariable=max_side, width=12).grid(row=8, column=1, sticky="w", padx=8)
-    ttk.Label(frm, text="Program przesyła obrazy wyłącznie do lokalnego Ollama (127.0.0.1).", foreground="#32624d").grid(row=9, column=0, columnspan=3, sticky="w", pady=8)
+    ttk.Label(frm, text="Profil kompresji PDF").grid(row=9, column=0, sticky="w", pady=7)
+    ttk.Combobox(frm, textvariable=compression_profile,
+                 values=["lossless", "light", "medium", "strong"],
+                 state="readonly", width=14).grid(row=9, column=1, sticky="w", padx=8)
+    ttk.Checkbutton(frm, text="Zapisz przeszukiwalne PDF-y z warstwą HTR",
+                    variable=searchable_pdf).grid(row=10, column=0, columnspan=3, sticky="w", pady=7)
+    ttk.Label(frm, text="Wszystko działa lokalnie; nie przesyła danych do usług chmurowych.",
+              foreground="#32624d").grid(row=11, column=0, columnspan=3, sticky="w", pady=8)
     log = tk.Text(frm, height=10, state="disabled", wrap="word")
-    log.grid(row=11, column=0, columnspan=3, sticky="nsew", pady=8)
+    log.grid(row=13, column=0, columnspan=3, sticky="nsew", pady=8)
     frm.columnconfigure(1, weight=1)
-    frm.rowconfigure(11, weight=1)
+    frm.rowconfigure(13, weight=1)
     bar = ttk.Frame(frm)
-    bar.grid(row=10, column=0, columnspan=3, sticky="w")
+    bar.grid(row=12, column=0, columnspan=3, sticky="w")
 
     def append(message):
         log.configure(state="normal")
@@ -556,7 +576,8 @@ def run_gui() -> None:
                 output=Path(paths["output"].get()).expanduser(),
                 reference=Path(paths["reference"].get()).expanduser() if paths["reference"].get() else None,
                 model=model.get().strip(), mode=mode.get(), segments=segments.get(),
-                max_side=int(max_side.get()), pages=pages.get().strip())
+                max_side=int(max_side.get()), pages=pages.get().strip(),
+                searchable_pdf=searchable_pdf.get())
             if not str(paths["original"].get()).strip() or not str(paths["compressed"].get()).strip():
                 raise ValueError("Wybierz oba pliki PDF.")
             if not str(paths["output"].get()).strip():
@@ -573,6 +594,35 @@ def run_gui() -> None:
         append("---- Nowa analiza ----")
         threading.Thread(target=worker, args=(config,), daemon=True).start()
 
+    def compress_worker(source: Path, destination: Path, profile: str):
+        try:
+            from pdf_tools import compress_pdf
+            stats = compress_pdf(source, destination, profile,
+                                 progress=lambda m: events.put(("log", m)))
+            events.put(("compression_complete", (str(destination), stats)))
+        except Exception as exc:
+            events.put(("error", str(exc)))
+
+    def start_compress():
+        nonlocal is_running
+        if is_running:
+            return
+        source = Path(paths["original"].get()).expanduser()
+        if not source.is_file():
+            messagebox.showerror("Błąd", "Wybierz najpierw oryginalny PDF.")
+            return
+        target = filedialog.asksaveasfilename(title="Zapisz skompresowany PDF",
+            defaultextension=".pdf", filetypes=[("PDF", "*.pdf")],
+            initialfile=f"{source.stem}_{compression_profile.get()}.pdf")
+        if not target:
+            return
+        is_running = True
+        btn_start.configure(state="disabled")
+        btn_compress.configure(state="disabled")
+        append("---- Kompresja PDF ----")
+        threading.Thread(target=compress_worker,
+                         args=(source, Path(target), compression_profile.get()), daemon=True).start()
+
     def cancel():
         stop.set()
         append("Zatrzymanie po bieżącym wywołaniu modelu…")
@@ -587,7 +637,14 @@ def run_gui() -> None:
                 else:
                     is_running = False
                     btn_start.configure(state="normal")
+                    btn_compress.configure(state="normal")
                     btn_stop.configure(state="disabled")
+                    if kind == "compression_complete":
+                        location, stats = value
+                        paths["compressed"].set(location)
+                        append(f"Kompresja zakończona: {location}; {stats['source_bytes']} → {stats['output_bytes']} B; obrazy JPEG: {stats['images_reencoded']}.")
+                        messagebox.showinfo("Gotowe", f"Zapisano PDF:\n{location}")
+                        continue
                     append(value)
                     if kind == "complete":
                         messagebox.showinfo("Gotowe", f"Zapisano raport:\n{value}")
@@ -597,6 +654,8 @@ def run_gui() -> None:
             pass
         root.after(150, poll)
 
+    btn_compress = ttk.Button(bar, text="Kompresuj oryginalny PDF", command=start_compress)
+    btn_compress.pack(side="left", padx=(0, 9))
     btn_start = ttk.Button(bar, text="Rozpocznij HTR i porównanie", command=start)
     btn_start.pack(side="left", padx=(0, 9))
     btn_stop = ttk.Button(bar, text="Zatrzymaj", command=cancel, state="disabled")
@@ -616,15 +675,35 @@ def cli() -> None:
     p.add_argument("--max-side", type=int, default=2800, help="Maksymalny bok obrazu strony w px")
     p.add_argument("--pages", default="", help="Np. 1-3,5; puste: wszystkie")
     p.add_argument("--reference", type=Path, help="Opcjonalny TXT z referencją === PAGE N ===")
+    p.add_argument("--compress", choices=["lossless", "light", "medium", "strong"],
+                   help="Utwórz skompresowany PDF z --original (wyjście: --compressed)")
+    p.add_argument("--compress-only", action="store_true", help="Kompresuj bez uruchamiania HTR/Ollama")
+    p.add_argument("--no-searchable-pdf", action="store_true",
+                   help="Nie twórz PDF-ów z niewidoczną warstwą OCR")
     args = p.parse_args()
-    if args.original is None and args.compressed is None:
+    if args.original is None and args.compressed is None and not args.compress:
         run_gui()
         return
-    if args.original is None or args.compressed is None:
-        p.error("Do trybu CLI podaj zarówno --original, jak i --compressed.")
+    if args.compress_only and not args.compress:
+        p.error("--compress-only wymaga podania --compress.")
+    if args.original is None:
+        p.error("Podaj --original.")
+    if not args.compress and args.compressed is None:
+        p.error("Podaj --compressed albo wybierz --compress.")
+    if args.compress:
+        from pdf_tools import compress_pdf
+        if args.compressed is None:
+            args.compressed = args.output / f"{args.original.stem}_{args.compress}.pdf"
+        try:
+            print(compress_pdf(args.original, args.compressed, args.compress, progress=print))
+        except (OSError, ValueError, RuntimeError) as exc:
+            p.exit(2, f"Błąd kompresji: {exc}\n")
+        if args.compress_only:
+            return
     config = Config(original=args.original, compressed=args.compressed, output=args.output,
                     model=args.model, mode=args.mode, segments=args.segments,
-                    max_side=args.max_side, pages=args.pages, reference=args.reference)
+                    max_side=args.max_side, pages=args.pages, reference=args.reference,
+                    searchable_pdf=not args.no_searchable_pdf)
     try:
         result = compare_documents(config, progress=print)
         print("Rozbieżność HTR (znaki):", format_pct(result["summary"]["char_disagreement"]))
