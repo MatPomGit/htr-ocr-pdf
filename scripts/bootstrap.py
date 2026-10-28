@@ -83,7 +83,9 @@ def features_for_args(args: list[str]) -> tuple[bool, bool]:
     if "--compress-only" in args:
         return False, False
     if not args:
-        return True, False  # GUI can open without downloading the large model.
+        return True, True  # Offer setup on first GUI launch, with consent.
+    if "--help" in args or "-h" in args:
+        return False, False
     return False, True
 
 
@@ -200,27 +202,39 @@ def venv_python() -> Path:
     return VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def verify_venv() -> None:
+def verify_venv(host: Host, assume_yes: bool, no_system: bool) -> None:
     target = venv_python()
-    if target.is_file():
+
+    def ready() -> bool:
+        if not target.is_file():
+            return False
+        check = subprocess.run([str(target), "-m", "pip", "--version"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                               check=False)
+        return check.returncode == 0
+
+    if ready():
         return
+    creation = [sys.executable, "-m", "venv", str(VENV)]
     try:
-        subprocess.run([sys.executable, "-m", "venv", str(VENV)], check=True)
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise SetupError(
-            "Nie udało się utworzyć .venv. Linux Debian/Ubuntu: doinstaluj "
-            "python3-venv. Upewnij się, że używasz Pythona >= 3.10."
-        ) from exc
-    if not target.is_file():
-        raise SetupError("Środowisko .venv nie zawiera interpretera Python.")
+        subprocess.run(creation, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        install_system_features(host, {"venv"}, assume_yes, no_system)
+        try:
+            subprocess.run(creation, check=True)
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise SetupError("Nie udało się utworzyć .venv; sprawdź pakiety python3-venv i pip.") from exc
+    if not ready():
+        raise SetupError("Środowisko .venv nie ma sprawnego pip. Sprawdź pakiety python3-venv / python3-pip.")
+
 
 
 def requirements_digest() -> str:
     return hashlib.sha256(REQUIREMENTS.read_bytes()).hexdigest()
 
 
-def install_python_deps() -> None:
-    verify_venv()
+def install_python_deps(host: Host, assume_yes: bool, no_system: bool) -> None:
+    verify_venv(host, assume_yes, no_system)
     target = venv_python()
     marker = VENV / ".requirements_sha256"
     digest = requirements_digest()
@@ -350,7 +364,7 @@ def main(argv: list[str] | None = None) -> int:
     if gui and not python_tk_available():
         raise SetupError("Tkinter nie jest dostępny dla bieżącego interpretera Python. "
                          "Sprawdź wskazówki dla systemu w docs/installation.md.")
-    install_python_deps()
+    install_python_deps(host, opts.yes, opts.no_system)
 
     if htr and not opts.no_ollama:
         ensure_ollama(host, opts.yes, opts.no_system)
