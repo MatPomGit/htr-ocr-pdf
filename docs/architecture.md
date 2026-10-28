@@ -7,7 +7,8 @@
 | `htr_compare.py` | GUI Tkinter, CLI, integracja Ollama, segmentacja, OCR/HTR, porównanie, raporty, checkpoint. |
 | `gui_tooltips.py` | Opisy kontrolek, opóźnione podpowiedzi po najechaniu i po uzyskaniu fokusu. |
 | `pdf_tools.py` | Kompresja PDF, ponowne kodowanie obrazów, zapis niewidocznej warstwy Unicode. |
-| `run.sh` | Uruchomienie aplikacji i przygotowanie środowiska Python. |
+| `run.sh`, `run.cmd`, `run.ps1` | Platformowe skrypty startowe dla Linux/macOS i Windows. |
+| `scripts/bootstrap.py` | Wykrywanie platformy, instalacja zależności i sprawdzanie Ollama. |
 | `tests/` | Testy jednostkowe i integracyjne bez rzeczywistego modelu Ollama. |
 | `docs/` + `mkdocs.yml` | Źródła dokumentacji MkDocs. |
 | `.github/workflows/pages.yml` | Budowanie dokumentacji i publikacja przez GitHub Actions. |

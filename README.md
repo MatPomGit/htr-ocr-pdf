@@ -1,4 +1,4 @@
-# HTR PDF Compare 1.2.1
+# HTR PDF Compare 1.3.0
 
 Lokalne porównanie odczytu pisma odręcznego z dwóch PDF-ów (oryginału i wersji skompresowanej). GUI Tkinter i CLI. Żadnego płatnego API ani wysyłania skanów do usług chmurowych. Dwa pliki są renderowane z tymi samymi parametrami, a identyczne regiony strony rozpoznaje **ten sam model**.
 
@@ -6,30 +6,37 @@ Lokalne porównanie odczytu pisma odręcznego z dwóch PDF-ów (oryginału i wer
 
 Wersja 1.2.0 dodaje kontekstowe podpowiedzi po najechaniu na przyciski, pola plików i ustawienia GUI. Po około 550 ms pojawia się opis działania elementu; podpowiedzi są też dostępne po ustawieniu fokusu klawiaturą. Implementacja: `gui_tooltips.py`.
 
-## Instalacja (Fedora)
+## Instalacja automatyczna (Linux, macOS, Windows)
 
-1. Zainstaluj [Ollama](https://ollama.com/download/linux), uruchom usługę i pobierz model:
+Skrypty wykrywają system operacyjny i menedżer pakietów, tworzą lokalne `.venv`
+i doinstalowują zależności z `requirements.txt`. Brakujące składniki systemowe
+(Tkinter, czcionki, obsługa venv) są proponowane do instalacji przy użyciu natywnego
+menedżera pakietów. Każda operacja wymagająca uprawnień lub pobierająca model
+wymaga potwierdzenia; nic nie jest instalowane przez zdalne skrypty wykonywane
+w powłoce. Instalacja Ollama i modelu nie jest wymagana do samej kompresji PDF.
 
-   ```bash
-   ollama pull qwen3-vl:4b
-   ollama list
-   ```
+```bash
+# Linux / macOS
+./run.sh
+./run.sh --setup       # pełna kontrola i doinstalowanie zależności
+./run.sh --doctor      # diagnostyka bez modyfikacji systemu
+```
 
-   Qwen3-VL wymaga Ollama co najmniej 0.12.7. Model `qwen3-vl:4b` zajmuje około 3,3 GB na dysku, dodatkowa pamięć jest potrzebna do działania. Bez GPU uruchomienie może być wolne.
+```powershell
+# Windows (PowerShell lub CMD)
+.\run.cmd
+.\run.cmd --setup
+.\run.cmd --doctor
+```
 
-2. Zainstaluj GUI i venv:
+Wymagany jest Python 3.10+ dostępny w PATH lub przez `py -3` (Windows).
+Parametr `--yes` potwierdza instalacje bez dodatkowych pytań, a `--no-system`
+wyklucza modyfikację pakietów systemowych. `--no-ollama` nie instaluje silnika
+ani modelu. Przy braku dostępu do repozytorium pakietów lub menedżera systemowego
+program wyświetla instrukcję zamiast wykonywać niezweryfikowany instalator.
 
-   ```bash
-   sudo dnf install python3-tkinter python3-pip
-   ```
-
-3. W rozpakowanym folderze uruchom:
-
-   ```bash
-   ./run.sh
-   ```
-
-   Przy pierwszym uruchomieniu `run.sh` instaluje Pythonowe pakiety `PyMuPDF` i `Pillow` z PyPI. Następnie przetwarzanie dokumentów i rozpoznawanie jest lokalne.
+Szczegóły dla dystrybucji i lista składników:
+[dokumentacja instalacji](https://matpomgit.github.io/htr-ocr-pdf/installation/).
 
 ## Użycie
 
@@ -120,7 +127,7 @@ Kompresja i porównanie HTR:
 ./run.sh --original original.pdf --compressed medium.pdf --compress medium --output results --segments 3
 ```
 
-Po HTR program tworzy także `original_searchable.pdf` i `compressed_searchable.pdf`: oryginalny wygląd stron z niewidoczną, kopiowalną i przeszukiwalną warstwą tekstu HTR. Polska czcionka DejaVu Sans: `sudo dnf install dejavu-sans-fonts`. Lokalizacje tekstu są **przybliżone**, ponieważ model zwraca tekst pasów strony, a nie współrzędne słów; zaznaczenie wyników wyszukiwania nie musi odpowiadać dokładnemu położeniu pisma. Tryb `all` może zdublować istniejący tekst drukowany. Wyłączenie eksportu: `--no-searchable-pdf` lub odznaczenie opcji w GUI.
+Po HTR program tworzy także `original_searchable.pdf` i `compressed_searchable.pdf`: oryginalny wygląd stron z niewidoczną, kopiowalną i przeszukiwalną warstwą tekstu HTR. Czcionka Unicode jest wykrywana zależnie od systemu operacyjnego. Lokalizacje tekstu są **przybliżone**, ponieważ model zwraca tekst pasów strony, a nie współrzędne słów; zaznaczenie wyników wyszukiwania nie musi odpowiadać dokładnemu położeniu pisma. Tryb `all` może zdublować istniejący tekst drukowany. Wyłączenie eksportu: `--no-searchable-pdf` lub odznaczenie opcji w GUI.
 
 Kompresja i eksport odbywają się lokalnie. Poprawność transkrypcji zależy od jakości wejścia i modelu.
 

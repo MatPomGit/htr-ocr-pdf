@@ -1,6 +1,6 @@
 # HTR OCR PDF
 
-**Wersja 1.2.1** · lokalne przetwarzanie plików PDF i rozpoznawanie pisma odręcznego.
+**Wersja 1.3.0** · lokalne przetwarzanie plików PDF i rozpoznawanie pisma odręcznego.
 
 ## Funkcje
 
@@ -9,6 +9,7 @@
 - Porównywanie tekstów i obrazów za pomocą metryk.
 - Eksport HTML, CSV, JSON, TXT i przeszukiwalnych PDF-ów.
 - Wznawianie analizy od ukończonych stron.
+- Wykrywanie systemu operacyjnego i instalacja brakujących zależności przez lokalny instalator.
 
 Zależności: Python, PyMuPDF, Pillow, Tkinter i lokalny Ollama z modelem Qwen3-VL.
 

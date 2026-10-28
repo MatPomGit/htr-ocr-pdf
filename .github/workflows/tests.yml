@@ -25,3 +25,20 @@ jobs:
           sudo apt-get install -y fonts-dejavu-core
       - name: Run unit and integration tests (mock Ollama)
         run: python -m unittest discover -s tests -v
+
+  bootstrap-matrix:
+    name: Dependency bootstrap (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test platform detection and installation policy
+        run: python -m unittest discover -s tests -p test_bootstrap.py -v
+      - name: Run read-only diagnostics
+        run: python scripts/bootstrap.py --doctor

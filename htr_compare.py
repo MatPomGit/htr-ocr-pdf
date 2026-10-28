@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HTR PDF Compare 1.2.1: local, privacy-preserving paired PDF transcription."""
+"""HTR PDF Compare 1.3.0: local, privacy-preserving paired PDF transcription."""
 from __future__ import annotations
 
 import argparse
@@ -24,7 +24,7 @@ from urllib.request import Request, urlopen
 
 from ollama_transport import CancelToken, Cancelled, stream_chat
 
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.3.0"
 DEFAULT_MODEL = "qwen3-vl:4b"
 DEFAULT_SERVER = "http://127.0.0.1:11434"
 SCHEMA = {
