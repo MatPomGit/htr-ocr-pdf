@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HTR PDF Compare 1.1.0: local, privacy-preserving paired PDF transcription."""
+"""HTR PDF Compare 1.2.0: local, privacy-preserving paired PDF transcription."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 DEFAULT_MODEL = "qwen3-vl:4b"
 DEFAULT_SERVER = "http://127.0.0.1:11434"
 SCHEMA = {
@@ -489,6 +489,8 @@ def run_gui() -> None:
     except ImportError as exc:
         raise RuntimeError("Brak Tkinter. Fedora: sudo dnf install python3-tkinter") from exc
 
+    from gui_tooltips import BUTTON_HELP, FIELD_HELP, attach_tooltip
+
     root = tk.Tk()
     root.title(f"HTR PDF Compare {APP_VERSION} | lokalnie")
     root.geometry("820x720")
@@ -521,27 +523,47 @@ def run_gui() -> None:
         ("original", "PDF oryginalny"), ("compressed", "PDF skompresowany"),
         ("reference", "Transkrypcja wzorcowa TXT (opcjonalnie)"),
         ("output", "Folder raportu")]):
-        ttk.Label(frm, text=label).grid(row=i, column=0, sticky="w", pady=5)
-        ttk.Entry(frm, textvariable=paths[name]).grid(row=i, column=1, sticky="ew", padx=8)
-        ttk.Button(frm, text="Wybierz…", command=lambda n=name: choose(n, n == "output")).grid(row=i, column=2)
+        caption = ttk.Label(frm, text=label)
+        caption.grid(row=i, column=0, sticky="w", pady=5)
+        entry = ttk.Entry(frm, textvariable=paths[name])
+        entry.grid(row=i, column=1, sticky="ew", padx=8)
+        browse = ttk.Button(frm, text="Wybierz…", command=lambda n=name: choose(n, n == "output"))
+        browse.grid(row=i, column=2)
+        attach_tooltip(caption, FIELD_HELP[name])
+        attach_tooltip(entry, FIELD_HELP[name])
+        attach_tooltip(browse, BUTTON_HELP[name])
 
     ttk.Label(frm, text="Model Ollama").grid(row=4, column=0, sticky="w", pady=7)
-    ttk.Entry(frm, textvariable=model).grid(row=4, column=1, sticky="ew", padx=8)
+    model_entry = ttk.Entry(frm, textvariable=model)
+    model_entry.grid(row=4, column=1, sticky="ew", padx=8)
+    attach_tooltip(model_entry, FIELD_HELP["model"])
     ttk.Label(frm, text="Zakres stron (puste = wszystkie)").grid(row=5, column=0, sticky="w", pady=7)
-    ttk.Entry(frm, textvariable=pages).grid(row=5, column=1, sticky="ew", padx=8)
+    pages_entry = ttk.Entry(frm, textvariable=pages)
+    pages_entry.grid(row=5, column=1, sticky="ew", padx=8)
+    attach_tooltip(pages_entry, FIELD_HELP["pages"])
     ttk.Label(frm, text="Rodzaj tekstu").grid(row=6, column=0, sticky="w", pady=7)
-    ttk.Combobox(frm, textvariable=mode, values=["handwriting", "all"], state="readonly").grid(row=6, column=1, sticky="w", padx=8)
+    mode_select = ttk.Combobox(frm, textvariable=mode, values=["handwriting", "all"], state="readonly")
+    mode_select.grid(row=6, column=1, sticky="w", padx=8)
+    attach_tooltip(mode_select, FIELD_HELP["mode"])
     ttk.Label(frm, text="Liczba pasów na stronę").grid(row=7, column=0, sticky="w", pady=7)
-    ttk.Combobox(frm, textvariable=segments, values=[1, 2, 3, 4, 5, 6], state="readonly", width=8).grid(row=7, column=1, sticky="w", padx=8)
+    segments_select = ttk.Combobox(frm, textvariable=segments, values=[1, 2, 3, 4, 5, 6], state="readonly", width=8)
+    segments_select.grid(row=7, column=1, sticky="w", padx=8)
+    attach_tooltip(segments_select, FIELD_HELP["segments"])
     ttk.Label(frm, text="Maksymalny bok renderu (px)").grid(row=8, column=0, sticky="w", pady=7)
-    ttk.Entry(frm, textvariable=max_side, width=12).grid(row=8, column=1, sticky="w", padx=8)
+    size_entry = ttk.Entry(frm, textvariable=max_side, width=12)
+    size_entry.grid(row=8, column=1, sticky="w", padx=8)
+    attach_tooltip(size_entry, FIELD_HELP["max_side"])
     ttk.Label(frm, text="Profil kompresji PDF").grid(row=9, column=0, sticky="w", pady=7)
-    ttk.Combobox(frm, textvariable=compression_profile,
+    compression_select = ttk.Combobox(frm, textvariable=compression_profile,
                  values=["lossless", "light", "medium", "strong"],
-                 state="readonly", width=14).grid(row=9, column=1, sticky="w", padx=8)
-    ttk.Checkbutton(frm, text="Zapisz przeszukiwalne PDF-y z warstwą HTR",
-                    variable=searchable_pdf).grid(row=10, column=0, columnspan=3, sticky="w", pady=7)
-    ttk.Label(frm, text="Wszystko działa lokalnie; nie przesyła danych do usług chmurowych.",
+                 state="readonly", width=14)
+    compression_select.grid(row=9, column=1, sticky="w", padx=8)
+    searchable_check = ttk.Checkbutton(frm, text="Zapisz przeszukiwalne PDF-y z warstwą HTR",
+                                       variable=searchable_pdf)
+    searchable_check.grid(row=10, column=0, columnspan=3, sticky="w", pady=7)
+    attach_tooltip(compression_select, FIELD_HELP["compression"])
+    attach_tooltip(searchable_check, FIELD_HELP["searchable"])
+    ttk.Label(frm, text="Najedź kursorem na element, aby zobaczyć opis. Przetwarzanie wyłącznie lokalne.",
               foreground="#32624d").grid(row=11, column=0, columnspan=3, sticky="w", pady=8)
     log = tk.Text(frm, height=10, state="disabled", wrap="word")
     log.grid(row=13, column=0, columnspan=3, sticky="nsew", pady=8)
@@ -590,6 +612,7 @@ def run_gui() -> None:
         stop.clear()
         is_running = True
         btn_start.configure(state="disabled")
+        btn_compress.configure(state="disabled")
         btn_stop.configure(state="normal")
         append("---- Nowa analiza ----")
         threading.Thread(target=worker, args=(config,), daemon=True).start()
@@ -660,6 +683,9 @@ def run_gui() -> None:
     btn_start.pack(side="left", padx=(0, 9))
     btn_stop = ttk.Button(bar, text="Zatrzymaj", command=cancel, state="disabled")
     btn_stop.pack(side="left")
+    attach_tooltip(btn_compress, BUTTON_HELP["compress"])
+    attach_tooltip(btn_start, BUTTON_HELP["start"])
+    attach_tooltip(btn_stop, BUTTON_HELP["stop"])
     root.after(150, poll)
     root.mainloop()
 
