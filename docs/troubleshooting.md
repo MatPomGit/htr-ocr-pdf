@@ -2,7 +2,7 @@
 
 ## Nie otwiera się interfejs
 
-Na Fedorze zainstaluj `python3-tkinter` i uruchamiaj aplikację w sesji z serwerem graficznym. Praca przez SSH bez przekazywania X11 wymaga użycia CLI.
+Instalator próbuje wykryć Tkinter i odpowiedni pakiet systemowy. Jeśli brak dostępu do menedżera pakietów, wykonaj `./run.sh --doctor` (Windows: `run.cmd --doctor`). GUI wymaga aktywnej sesji graficznej; CLI jej nie wymaga.
 
 ## Nie pojawiają się podpowiedzi
 
@@ -22,7 +22,7 @@ W razie potrzeby uruchom `ollama serve` i pobierz `qwen3-vl:4b`. Program nie dop
 ## Brak fontu do zapisu PDF
 
 ```bash
-sudo dnf install dejavu-sans-fonts
+./run.sh --setup
 ```
 
 Warstwa Unicode potrzebuje fontu obsługującego polskie znaki.
@@ -43,3 +43,24 @@ Sprawdź Actions → **Documentation / GitHub Pages**. Jeżeli krok `Configure G
 ## Zatrzymanie HTR
 
 Od wersji 1.2.1 przycisk **Zatrzymaj** zamyka aktywny strumień HTTP bez czekania na całą odpowiedź. Sprawdź wersję widoczną w tytule GUI. `ollama ps` może nadal pokazywać model, ponieważ `keep_alive` utrzymuje go w pamięci; nie oznacza to aktywnej generacji.
+
+
+## Instalator nie może doinstalować pakietu
+
+Uruchom `./run.sh --doctor` lub na Windows `run.cmd --doctor`.
+Parametr `--setup` ponowi instalację; `--no-system` uniemożliwia zmianę pakietów
+systemowych, a `--no-ollama` pomija instalację silnika. Jeśli nie ma interaktywnego
+terminala, program nie podnosi uprawnień automatycznie. Menedżer APT może nie
+posiadać pakietu Ollama; wówczas dostępna jest tylko instalacja oficjalna z
+https://ollama.com/download.
+
+## Błąd tworzenia środowiska .venv
+
+Sprawdź wersję `python3 --version` (wymagane >= 3.10) oraz obecność
+`python3-venv` na Debian/Ubuntu. Instalator spróbuje doinstalować ten
+pakiet po zaakceptowaniu operacji. Zależności aplikacji nie są instalowane globalnie.
+
+## Windows: polecenie python lub py nie istnieje
+
+Zainstaluj Python 3.10+ (ze wsparciem Tcl/Tk) i udostępnij `py` albo
+`python` w PATH. Następnie uruchom `run.cmd --setup`.
