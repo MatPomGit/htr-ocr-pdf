@@ -30,6 +30,16 @@ class PublicDocumentationTest(unittest.TestCase):
                      "development.md", "troubleshooting.md"):
             self.assertTrue((ROOT / "docs" / file).is_file(), file)
 
+    def test_processing_diagram_has_mermaid_fence_and_configuration(self):
+        homepage = (ROOT / "docs" / "index.md").read_text(encoding="utf-8")
+        config = (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
+        self.assertIn("```mermaid", homepage)
+        self.assertIn("flowchart LR", homepage)
+        self.assertIn("custom_fences:", config)
+        self.assertIn("name: mermaid", config)
+        self.assertIn("class: mermaid", config)
+        self.assertIn("fence_code_format", config)
+
     def test_instructions_document_immediate_cancellation(self):
         text = (ROOT / "docs" / "recognition.md").read_text(encoding="utf-8")
         self.assertIn("stream: true", text)

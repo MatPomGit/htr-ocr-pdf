@@ -24,4 +24,18 @@ Zależności: Python, PyMuPDF, Pillow, Tkinter i lokalny Ollama z modelem Qwen3-
 - [Testowanie i publikacja](development.md)
 - [Rozwiązywanie problemów](troubleshooting.md)
 
+## Etapy przetwarzania
+
+```mermaid
+flowchart LR
+    A["PDF oryginalny"] --> B["Drugi PDF (kompresja opcjonalna)"]
+    A --> C["HTR oryginału"]
+    B --> D["HTR drugiego PDF"]
+    C --> E["Porównanie transkrypcji i obrazu"]
+    D --> E
+    E --> F["Raport HTML / CSV / JSON"]
+    C --> G["Przeszukiwalne PDF-y"]
+    D --> G
+```
+
 Źródła: [MatPomGit/htr-ocr-pdf](https://github.com/MatPomGit/htr-ocr-pdf).
