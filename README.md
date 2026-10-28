@@ -1,4 +1,4 @@
-# HTR PDF Compare 1.0.0
+# HTR PDF Compare 1.1.0
 
 Lokalne porównanie odczytu pisma odręcznego z dwóch PDF-ów (oryginału i wersji skompresowanej). GUI Tkinter i CLI. Żadnego płatnego API ani wysyłania skanów do usług chmurowych. Dwa pliki są renderowane z tymi samymi parametrami, a identyczne regiony strony rozpoznaje **ten sam model**.
 
@@ -89,3 +89,33 @@ W razie przerwania zadania program zapisuje `checkpoint.json` po każdej ukończ
 ```bash
 python3 -m unittest discover -s tests -v
 ```
+
+
+## Kompresja PDF i przeszukiwalne PDF-y (1.1.0)
+
+W GUI wybierz **PDF oryginalny**, ustaw profil i kliknij **Kompresuj oryginalny PDF**. Zapisany dokument zostanie automatycznie wskazany jako drugi PDF do porównania HTR. Kompresja działa niezależnie od Ollama.
+
+| Profil | Mechanizm | Parametry |
+| --- | --- | --- |
+| `lossless` | Optymalizacja struktury, kompresja strumieni, usuwanie nieużywanych obiektów | Bez zmian pikseli obrazów |
+| `light` | Ponowne kodowanie obsługiwanych obrazów jako JPEG | Jakość 88, bez zmiany rozdzielczości |
+| `medium` | JPEG z redukcją rozdzielczości obrazów | Jakość 72, 85% wymiarów obrazu |
+| `strong` | Mocniejsze kodowanie JPEG i redukcja obrazów | Jakość 50, 70% wymiarów obrazu |
+
+Kompresor **nie rasteryzuję całych stron**. Tekst drukowany i grafika wektorowa zachowują strukturę PDF. Nieobsługiwane lub maskowane obrazy są pomijane. JPEG zastępuje osadzony obraz tylko wtedy, gdy plik obrazu staje się mniejszy. Profil bezstratny może zmniejszyć rozmiar, ale nie gwarantuje oszczędności; ponowny zapis PDF może unieważnić podpisy cyfrowe. Zawsze zachowaj oryginał.
+
+Samodzielna kompresja bez Ollama:
+
+```bash
+./run.sh --original original.pdf --compressed medium.pdf --compress medium --compress-only
+```
+
+Kompresja i porównanie HTR:
+
+```bash
+./run.sh --original original.pdf --compressed medium.pdf --compress medium --output results --segments 3
+```
+
+Po HTR program tworzy także `original_searchable.pdf` i `compressed_searchable.pdf`: oryginalny wygląd stron z niewidoczną, kopiowalną i przeszukiwalną warstwą tekstu HTR. Polska czcionka DejaVu Sans: `sudo dnf install dejavu-sans-fonts`. Lokalizacje tekstu są **przybliżone**, ponieważ model zwraca tekst pasów strony, a nie współrzędne słów; zaznaczenie wyników wyszukiwania nie musi odpowiadać dokładnemu położeniu pisma. Tryb `all` może zdublować istniejący tekst drukowany. Wyłączenie eksportu: `--no-searchable-pdf` lub odznaczenie opcji w GUI.
+
+Kompresja i eksport odbywają się lokalnie. Transkrypcję należy weryfikować przed ocenianiem prac studentów.
