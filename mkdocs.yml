@@ -1,0 +1,42 @@
+site_name: HTR OCR PDF
+site_description: Lokalna kompresja PDF, rozpoznawanie pisma ręcznego i porównywanie jakości HTR
+site_author: MatPomGit
+site_url: https://matpomgit.github.io/htr-ocr-pdf/
+repo_url: https://github.com/MatPomGit/htr-ocr-pdf
+repo_name: MatPomGit/htr-ocr-pdf
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+theme:
+  name: material
+  language: pl
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+  palette:
+    primary: teal
+    accent: cyan
+plugins:
+  - search:
+      lang: pl
+markdown_extensions:
+  - admonition
+  - tables
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+nav:
+  - Start: index.md
+  - Instalacja: installation.md
+  - Interfejs graficzny: interface.md
+  - Kompresja PDF: compression.md
+  - HTR i OCR: recognition.md
+  - Raporty i PDF z OCR: results.md
+  - Metodologia eksperymentu: evaluation.md
+  - Architektura: architecture.md
+  - Rozwój i testy: development.md
+  - Rozwiązywanie problemów: troubleshooting.md
