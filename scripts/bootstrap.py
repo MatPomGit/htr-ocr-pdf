@@ -29,6 +29,21 @@ OLLAMA_URL = "http://127.0.0.1:11434/api/tags"
 MIN_PYTHON = (3, 10)
 
 
+def configure_console() -> None:
+    """Avoid UnicodeEncodeError on redirected Windows consoles (e.g. cp1252)."""
+    if os.name != "nt":
+        return
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except (OSError, ValueError):
+                pass
+
+
+configure_console()
+
+
 class SetupError(RuntimeError):
     pass
 
