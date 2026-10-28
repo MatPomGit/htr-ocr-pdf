@@ -125,12 +125,19 @@ def compress_pdf(source: Path, target: Path, profile: str, progress=None) -> dic
 
 
 def _font_path() -> str | None:
-    for p in ("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
-              "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-              "/usr/share/fonts/dejavu/DejaVuSans.ttf"):
-        if Path(p).is_file():
-            return p
-    return None
+    """Find a Unicode-capable font available with the host operating system."""
+    windows_fonts = Path(os.environ.get("WINDIR", "C:/Windows")) / "Fonts"
+    candidates = (
+        Path("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/dejavu/DejaVuSans.ttf"),
+        Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+        Path("/Library/Fonts/Arial.ttf"),
+        Path.home() / "Library" / "Fonts" / "DejaVuSans.ttf",
+        windows_fonts / "arial.ttf",
+        windows_fonts / "segoeui.ttf",
+    )
+    return next((str(path) for path in candidates if path.is_file()), None)
 
 
 def export_searchable_pdf(source: Path, target: Path, pages: list[dict],
