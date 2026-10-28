@@ -14,7 +14,7 @@ Podpowiedź pojawia się po około **550 ms** bez ruchu kursora nad kontrolką, 
 | **Wybierz…** obok folderu | Wskazuje katalog raportów i wygenerowanych plików. |
 | **Kompresuj oryginalny PDF** | Zapisuje drugi PDF wybranym profilem i ustawia go jako wejście porównawcze. Działa bez Ollama. |
 | **Rozpocznij HTR i porównanie** | Uruchamia rozpoznanie obu PDF-ów, metryki i raport; wymaga modelu lokalnego. |
-| **Zatrzymaj** | Przerywa po bieżącym wywołaniu modelu; ukończone strony pozostają we wznowieniu. |
+| **Zatrzymaj** | Przerywa aktywne połączenie Ollama; niekompletna odpowiedź jest odrzucana, a pełne strony są zachowywane. |
 
 ## Ustawienia
 
@@ -37,3 +37,8 @@ Podpowiedź pojawia się po około **550 ms** bez ruchu kursora nad kontrolką, 
 5. Kliknij **Rozpocznij HTR i porównanie**. Postęp widać w dolnym dzienniku.
 
 Zobacz [raporty](results.md) i [metodologię](evaluation.md).
+
+
+## Natychmiastowe przerwanie
+
+Przycisk **Zatrzymaj** zamyka aktywne gniazdo strumieniowego połączenia HTTP. Nie trzeba czekać na dokończenie odpowiedzi modelu. Ukończone strony pozostają w pliku checkpoint. Serwer Ollama nie jest wyłączany, a załadowany model może pozostać w pamięci.

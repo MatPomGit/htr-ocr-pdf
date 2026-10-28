@@ -31,7 +31,12 @@ flowchart TD
 - Brak segmentacji pól odpowiedzi opartej na ich rzeczywistych granicach; używane są pasy poziome.
 - Brak bounding boxów słów i wyrównywania tekstu do pikseli źródłowych.
 - Niepełna obsługa niektórych typów obrazów PDF; nieobsługiwane obrazy pozostają niezmodyfikowane.
-- Kontrola jakości HTR wymaga człowieka i danych referencyjnych.
-- Brak samodzielnej diagnostyki skuteczności HTR na zbiorze prac studentów.
+- Wyliczenie CER/WER wymaga opcjonalnej referencji tekstowej.
+- Nie zawiera wbudowanego zbioru referencyjnego.
 
-Dalszy rozwój można skierować na precyzyjne lokalizowanie odręcznych odpowiedzi, automatyczne wyrównanie stron i zestawy walidacyjne.
+Potencjalne rozszerzenia techniczne: lokalizacja słów i wyrównanie obrazu.
+
+
+## Transport i anulowanie
+
+`ollama_transport.py` otwiera lokalne połączenie strumieniowe HTTP i agreguje porcje JSON. `CancelToken` przechowuje aktywne gniazdo TCP i pozwala je zamknąć z wątku interfejsu. Przerwany strumień nie może być potraktowany jako ukończona transkrypcja.

@@ -36,7 +36,7 @@ nav:
   - Kompresja PDF: compression.md
   - HTR i OCR: recognition.md
   - Raporty i PDF z OCR: results.md
-  - Metodologia eksperymentu: evaluation.md
+  - Metryki i algorytmy: evaluation.md
   - Architektura: architecture.md
   - Rozwój i testy: development.md
   - Rozwiązywanie problemów: troubleshooting.md

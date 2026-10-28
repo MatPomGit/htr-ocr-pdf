@@ -1,4 +1,4 @@
-# HTR PDF Compare 1.2.0
+# HTR PDF Compare 1.2.1
 
 Lokalne porównanie odczytu pisma odręcznego z dwóch PDF-ów (oryginału i wersji skompresowanej). GUI Tkinter i CLI. Żadnego płatnego API ani wysyłania skanów do usług chmurowych. Dwa pliki są renderowane z tymi samymi parametrami, a identyczne regiony strony rozpoznaje **ten sam model**.
 
@@ -57,8 +57,8 @@ Aby zmierzyć dokładność, dodaj transkrypcję wykonaną **przez człowieka** 
 
 ```text
 === PAGE 1 ===
-Pierwsza ręczna odpowiedź studenta
-Druga ręczna odpowiedź studenta
+Pierwszy fragment tekstu
+Drugi fragment tekstu
 
 === PAGE 2 ===
 Tekst odręczny z drugiej strony
@@ -79,13 +79,13 @@ W razie przerwania zadania program zapisuje `checkpoint.json` po każdej ukończ
 
 ## Ograniczenia i ostrożność
 
-- To **pilotażowa aplikacja badawcza**. Qwen3-VL jest modelem ogólnego widzenia i języka, a nie zwalidowanym klinicznie/systemowo HTR. Może pomijać odręczne fragmenty, dopisywać treść lub mylić druk z rękopisem. Wyniki wymagają ręcznej oceny.
+- Qwen3-VL jest ogólnym modelem multimodalnym. Może pomijać fragmenty tekstu, dopisywać treść lub mylić druk z rękopisem.
 - Rozpoznawanie pełnych stron może być mniej dokładne niż odpowiednio wydzielonych pól odpowiedzi. Liczba pasów to kompromis. Granice pasów mogą przeciąć tekst, szczególnie przy dużych rysunkach lub nieregularnym układzie.
-- Model może nieprawidłowo rozpoznawać polskie znaki, równania i symbole matematyczne. Przy ocenie studentów nie używaj transkrypcji jako jedynej podstawy decyzji.
-- Każde ponowne uruchomienie modelu może nieznacznie zmienić wynik mimo temperatury 0. Do publikacji naukowej użyj kontroli powtórzeń, anotacji eksperckiej i protokołu ewaluacji.
+- Model może nieprawidłowo rozpoznawać polskie znaki, równania i symbole matematyczne. Rozpoznanie tekstu może zawierać błędy.
+- Każde ponowne uruchomienie modelu może nieznacznie zmienić wynik mimo temperatury 0. Powtarzalność wymaga kontroli wersji modelu, ustawień i danych wejściowych.
 - Wymagana jest ta sama liczba stron i zbliżone rozmiary geometryczne obu PDF-ów. Nie wykonujemy automatycznej rejestracji (alignment) przesuniętych skanów.
 - Pixele z każdego PDF-a mogą się nieznacznie różnić także na skutek renderowania. PSNR i RMSE dotyczą renderowanych stron, a nie surowych danych JPEG w PDF.
-- Dane studenckie i raporty pozostają lokalne; przed przekazaniem osobom trzecim należy zadbać o zgodność z zasadami ochrony danych.
+- Dane wejściowe i raporty pozostają lokalne. Nie są przesyłane do zewnętrznych usług.
 - Na stronie o niezwykłym fizycznym rozmiarze (np. 1987×2761 pt), parametr `--max-side` ogranicza faktyczny rozmiar wejścia modelu, a DPI wyliczane jest automatycznie. Domyślnie 2800 px, z możliwością zwiększenia.
 
 ## Testy bez Ollama
@@ -122,7 +122,7 @@ Kompresja i porównanie HTR:
 
 Po HTR program tworzy także `original_searchable.pdf` i `compressed_searchable.pdf`: oryginalny wygląd stron z niewidoczną, kopiowalną i przeszukiwalną warstwą tekstu HTR. Polska czcionka DejaVu Sans: `sudo dnf install dejavu-sans-fonts`. Lokalizacje tekstu są **przybliżone**, ponieważ model zwraca tekst pasów strony, a nie współrzędne słów; zaznaczenie wyników wyszukiwania nie musi odpowiadać dokładnemu położeniu pisma. Tryb `all` może zdublować istniejący tekst drukowany. Wyłączenie eksportu: `--no-searchable-pdf` lub odznaczenie opcji w GUI.
 
-Kompresja i eksport odbywają się lokalnie. Transkrypcję należy weryfikować przed ocenianiem prac studentów.
+Kompresja i eksport odbywają się lokalnie. Poprawność transkrypcji zależy od jakości wejścia i modelu.
 
 
 ## Dokumentacja projektu (MkDocs)
@@ -135,3 +135,8 @@ python3 -m venv .venv-docs
 ```
 
 Strona jest automatycznie wdrażana przy zmianach dokumentacji na `main` przez `.github/workflows/pages.yml`. W nowym repozytorium może być wymagane jednorazowe wybranie `Settings → Pages → Source: GitHub Actions`.
+
+
+## Anulowanie aktywnego HTR (1.2.1)
+
+Przycisk **Zatrzymaj** zamyka aktywne strumieniowe połączenie z lokalnym Ollama. Nie czeka na ukończenie bieżącej generacji, nie przerywa innych zadań Ollama i nie usuwa ukończonych stron zapisanych w `checkpoint.json`. Niekompletna odpowiedź modelu jest odrzucana. Model może pozostawać załadowany w pamięci przez czas `keep_alive` bez generowania.

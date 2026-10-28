@@ -22,15 +22,15 @@ Skala odnosi się do szerokości i wysokości obrazu, a nie do rozmiaru pliku PD
 ## Przykład CLI
 
 ```bash
-./run.sh --original formularz.pdf --compressed formularz_medium.pdf \
+./run.sh --original source.pdf --compressed source_medium.pdf \
   --compress medium --compress-only
 ```
 
 Kompresja połączona z analizą HTR:
 
 ```bash
-./run.sh --original formularz.pdf --compressed formularz_medium.pdf \
+./run.sh --original source.pdf --compressed source_medium.pdf \
   --compress medium --output wyniki --segments 3
 ```
 
-Wynik kompresji zawiera liczbę stron, liczbę przekodowanych i pominiętych obrazów oraz rozmiary wejściowy/wyjściowy. Zobacz [metody oceny skutków kompresji](evaluation.md).
+Wynik kompresji zawiera liczbę stron, liczbę przekodowanych i pominiętych obrazów oraz rozmiary wejściowy/wyjściowy. Zobacz [definicje metryk](evaluation.md).
