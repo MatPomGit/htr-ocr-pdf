@@ -26,8 +26,9 @@ BUTTON_HELP = {
         "Zapisuje raport, transkrypcje i opcjonalną warstwę OCR w PDF."
     ),
     "stop": (
-        "Zgłoś przerwanie analizy HTR po zakończeniu bieżącego żądania do modelu. "
-        "Ukończone strony pozostają w pliku checkpoint i mogą być wznowione."
+        "Anuluj bieżące żądanie HTR do Ollama przez zamknięcie połączenia, "
+        "bez oczekiwania na wygenerowanie całej odpowiedzi. "
+        "Ukończone strony pozostają w checkpoint i mogą być wznowione."
     ),
 }
 
