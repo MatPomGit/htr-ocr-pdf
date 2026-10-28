@@ -20,7 +20,7 @@ Domyślnie program zachowuje widoczną zawartość strony i dodaje w PDF **niewi
 !!! warning "Pozycjonowanie jest przybliżone"
     Obecny model zwraca fragmenty tekstu z poziomych pasów, **nie** współrzędne liter i słów. Pozycje niewidocznej warstwy są rozkładane orientacyjnie w obrębie pasa; dokładne zaznaczanie tekstu i podświetlenia wyników wyszukiwania mogą nie odpowiadać rękopisowi.
 
-Przy przetwarzaniu wybranych stron warstwa HTR jest dodawana tylko do nich, a pozostałe strony zostają zachowane. Domyślny tryb `handwriting` nie dodaje wydrukowanych pytań, których model nie transkrybuje.
+Przy przetwarzaniu wybranych stron warstwa HTR jest dodawana tylko do nich, a pozostałe strony zostają zachowane. Domyślny tryb `handwriting` nie dodaje tekstu drukowanego, których model nie transkrybuje.
 
 Można wyłączyć tworzenie PDF z OCR przez `--no-searchable-pdf` albo odznaczyć odpowiednie pole w GUI.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""HTR PDF Compare 1.2.0: local, privacy-preserving paired PDF transcription."""
+"""HTR PDF Compare 1.2.1: local, privacy-preserving paired PDF transcription."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,9 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
-APP_VERSION = "1.2.0"
+from ollama_transport import CancelToken, Cancelled, stream_chat
+
+APP_VERSION = "1.2.1"
 DEFAULT_MODEL = "qwen3-vl:4b"
 DEFAULT_SERVER = "http://127.0.0.1:11434"
 SCHEMA = {
@@ -65,10 +67,6 @@ class Config:
     searchable_pdf: bool = True
 
 
-class Cancelled(Exception):
-    pass
-
-
 def require_local(server: str) -> str:
     parsed = urlparse(server)
     if (parsed.scheme != "http" or parsed.hostname not in {"localhost", "127.0.0.1", "::1"}
@@ -101,7 +99,9 @@ def check_model(server: str, model: str) -> str | None:
     return next((x.get("digest") for x in available.get("models", []) if x.get("name") == target), None)
 
 
-def recognize(image, config: Config) -> str:
+def recognize(image, config: Config, stop: CancelToken | threading.Event | None = None) -> str:
+    if stop is not None and stop.is_set():
+        raise Cancelled("Analizę anulowano.")
     data = BytesIO()
     image.save(data, format="PNG", optimize=False)
     payload = {
@@ -113,10 +113,10 @@ def recognize(image, config: Config) -> str:
         }],
         "format": SCHEMA,
         "options": {"temperature": 0, "seed": 42, "num_predict": 3000, "num_ctx": 8192},
-        "stream": False,
+        "stream": True,
         "keep_alive": "5m",
     }
-    reply = http_json(config.server + "/api/chat", payload, timeout=900)
+    reply = stream_chat(config.server, payload, stop=stop, timeout=900)
     if reply.get("done_reason") == "length":
         raise RuntimeError("Model przerwał transkrypcję z powodu limitu tokenów; zwiększ liczbę pasów strony.")
     content = reply.get("message", {}).get("content", "")
@@ -271,6 +271,8 @@ def compare_documents(config: Config, progress=None, stop: threading.Event | Non
         raise ValueError("Wybierz dwa różne pliki PDF.")
     log("Sprawdzam lokalny silnik Ollama i model…")
     model_digest = check_model(config.server, config.model)
+    if stop is not None and stop.is_set():
+        raise Cancelled("Analizę anulowano.")
     if not isinstance(model_digest, str):
         model_digest = None
     try:
@@ -329,6 +331,8 @@ def compare_documents(config: Config, progress=None, stop: threading.Event | Non
             dpi = min(300.0, 72.0 * config.max_side / max(p1.rect.width, p1.rect.height))
             log(f"Strona {page_no}/{len(first)} ({index}/{len(chosen)}): renderowanie {round(dpi)} DPI…")
             a, b = render_page(p1, dpi), render_page(p2, dpi)
+            if stop is not None and stop.is_set():
+                raise Cancelled("Analizę anulowano.")
             if a.size != b.size:
                 raise ValueError(f"Strona {page_no}: różne rozmiary obrazu po renderowaniu.")
             pixels = image_metrics(a, b)
@@ -339,11 +343,11 @@ def compare_documents(config: Config, progress=None, stop: threading.Event | Non
                     raise Cancelled("Analizę zatrzymano.")
                 region = (0, upper, a.width, lower)
                 log(f"Strona {page_no}, pas {segment_no}/{config.segments}: HTR oryginału…")
-                chunks_a.append(recognize(a.crop(region), config))
+                chunks_a.append(recognize(a.crop(region), config, stop=stop))
                 if stop and stop.is_set():
                     raise Cancelled("Analizę zatrzymano.")
                 log(f"Strona {page_no}, pas {segment_no}/{config.segments}: HTR kompresji…")
-                chunks_b.append(recognize(b.crop(region), config))
+                chunks_b.append(recognize(b.crop(region), config, stop=stop))
             text_a = "\n".join(t for t in chunks_a if t).strip()
             text_b = "\n".join(t for t in chunks_b if t).strip()
             metrics = pair_metrics(text_a, text_b)
@@ -362,6 +366,8 @@ def compare_documents(config: Config, progress=None, stop: threading.Event | Non
                                       ensure_ascii=False, indent=2), encoding="utf-8")
             tmp.replace(checkpoint)
             log(f"Strona {page_no}: rozbieżność znakowa {metrics['char_disagreement']:.1%}.")
+        if stop is not None and stop.is_set():
+            raise Cancelled("Analizę anulowano.")
         overall_chars = sum(x["comparison"]["char_edits"] for x in results)
         overall_words = sum(x["comparison"]["word_edits"] for x in results)
         denom_c = sum(x["comparison"]["char_denominator"] for x in results)
@@ -506,7 +512,7 @@ def run_gui() -> None:
     compression_profile = tk.StringVar(value="medium")
     searchable_pdf = tk.BooleanVar(value=True)
     events: queue.Queue = queue.Queue()
-    stop = threading.Event()
+    stop = CancelToken()
     is_running = False
 
     def choose(name: str, folder=False):
@@ -580,7 +586,9 @@ def run_gui() -> None:
 
     def worker(config: Config):
         try:
-            result = compare_documents(config, progress=lambda m: events.put(("log", m)), stop=stop)
+            compare_documents(config, progress=lambda m: events.put(("log", m)), stop=stop)
+            if stop.is_set():
+                raise Cancelled("Analizę anulowano.")
             events.put(("complete", str(config.output / "report.html")))
         except Cancelled as exc:
             events.put(("cancelled", str(exc)))
@@ -647,8 +655,11 @@ def run_gui() -> None:
                          args=(source, Path(target), compression_profile.get()), daemon=True).start()
 
     def cancel():
+        if not is_running:
+            return
+        btn_stop.configure(state="disabled")
         stop.set()
-        append("Zatrzymanie po bieżącym wywołaniu modelu…")
+        append("Wysłano anulowanie: zamknięto aktywne połączenie z modelem.")
 
     def poll():
         nonlocal is_running
@@ -671,6 +682,8 @@ def run_gui() -> None:
                     append(value)
                     if kind == "complete":
                         messagebox.showinfo("Gotowe", f"Zapisano raport:\n{value}")
+                    elif kind == "cancelled":
+                        append("Anulowano analizę. Zakończone strony zachowano w checkpoint.")
                     elif kind == "error":
                         messagebox.showerror("Błąd", value)
         except queue.Empty:

@@ -4,7 +4,7 @@ Aplikacja renderuje odpowiednie strony obu dokumentów przy takich samych parame
 
 ## Tryby rozpoznawania
 
-- `handwriting`: model jest instruowany, aby przepisał **wyłącznie** treść odręczną, bez drukowanego formularza.
+- `handwriting`: model jest instruowany, aby przepisał **wyłącznie** treść odręczną, bez tekstu drukowanego.
 - `all`: model rozpoznaje także treść drukowaną. Przy eksportowaniu warstwy tekstowej może to powodować duplikację już istniejącego tekstu PDF.
 
 Model powinien zachować polskie znaki i oryginalne błędy pisowni. Nieczytelny fragment powinien oznaczyć `[nieczytelne]`, jednak wynik może zawierać pominięcia, halucynacje lub błędne rozpoznania.
@@ -23,6 +23,11 @@ Wywołania używają temperatury 0 i ziarna 42, ale wynik może nadal różnić 
 
 Program odrzuca zdalne adresy serwera Ollama i używa lokalnego HTTP. Żądania zawierające obrazy nie są wysyłane do usług chmurowych. Dokumenty, transkrypcje i raport pozostają na komputerze użytkownika.
 
-Po ukończeniu strony stan zapisywany jest w `checkpoint.json`; wznowienie jest możliwe, jeśli pliki, model i parametry przetwarzania nie uległy zmianie. Zatrzymanie może nastąpić dopiero po zakończeniu bieżącego wywołania modelu.
+Po ukończeniu strony stan zapisywany jest w `checkpoint.json`; wznowienie jest możliwe, jeśli pliki, model i parametry przetwarzania nie uległy zmianie. Zatrzymanie zamyka aktywne połączenie HTTP i odrzuca niekompletną odpowiedź.
 
 Zobacz [eksport wyników](results.md).
+
+
+## Anulowanie żądania HTR
+
+Klient łączy się z lokalnym `/api/chat` przy użyciu `stream: true`. Fragmenty JSON Lines są łączone w jedną transkrypcję, ale zostają zaakceptowane tylko po odebraniu komunikatu końcowego. Wciśnięcie **Zatrzymaj** ustawia flagę w `CancelToken` oraz zamyka aktywne gniazdo TCP, co przerywa blokujący odczyt. Nie dotyczy to innych żądań Ollama. Przerwana strona nie jest zapisywana jako ukończona w checkpoint.

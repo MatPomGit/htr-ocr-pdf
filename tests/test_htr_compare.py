@@ -63,11 +63,12 @@ class AlgorithmsTest(unittest.TestCase):
     def test_recognize_payload(self):
         from PIL import Image
         conf = Config(Path('a.pdf'), Path('b.pdf'), Path('out'))
-        with patch('htr_compare.http_json', return_value={'message': {'content': '{"text": "rękopis"}'}, 'done_reason': 'stop'}) as mock:
+        with patch('htr_compare.stream_chat', return_value={'message': {'content': '{"text": "rękopis"}'}, 'done_reason': 'stop'}) as mock:
             self.assertEqual(recognize(Image.new('RGB',(100,200),'white'),conf),'rękopis')
             self.assertEqual(mock.call_args.args[1]['messages'][0]['role'], 'user')
             self.assertTrue(mock.call_args.args[1]['messages'][0]['images'][0])
             self.assertEqual(mock.call_args.args[1]['options']['temperature'],0)
+            self.assertTrue(mock.call_args.args[1]['stream'])
 
 
 class IntegratedTest(unittest.TestCase):

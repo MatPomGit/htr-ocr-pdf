@@ -1,59 +1,34 @@
-# Metodologia: wpływ kompresji na HTR
+# Metryki tekstowe i obrazowe
 
-## Pytanie badawcze
+## Rozbieżność transkrypcji
 
-Czy zmniejszenie rozmiaru skanu PDF pogarsza dokładność rozpoznawania pisma odręcznego, jeśli model i parametry przetwarzania pozostają niezmienione?
+Dla znormalizowanych tekstów `A` i `B`:
 
-W porównywaniu dwóch PDF-ów należy utrzymywać stałe: model i digest, temperaturę, segmentację, rozmiar renderu, kolejność stron i sposób normalizacji tekstu.
+`char_disagreement = Levenshtein(A,B) / max(len(A),len(B))`
 
-## Rozbieżność bez wzorca
+`word_disagreement = Levenshtein(words(A),words(B)) / max(word_count(A),word_count(B))`
 
-Dla transkrypcji oryginału `A` i wersji skompresowanej `B` używany jest dystans Levenshteina:
+Dwa puste teksty dają wynik 0. To miary rozbieżności, nie dokładności transkrypcji.
 
-`char_disagreement = distance(A, B) / max(len(A), len(B))`
+## CER i WER względem referencji
 
-Analogicznie obliczana jest rozbieżność słowna. Wynik równy 0 nie dowodzi prawidłowości transkrypcji: oba wyniki mogą być jednakowo błędne.
+Dla tekstu referencyjnego `R` i wyniku `T`:
 
-## Rzeczywisty CER i WER
+`CER = Levenshtein(R,T) / len(R)`
 
-Dla ręcznie zweryfikowanej referencji `R` oraz predykcji `P`:
+`WER = Levenshtein(words(R),words(T)) / word_count(R)`
 
-`CER = distance(R, P) / liczba_znaków(R)`
-
-`WER = distance(tokeny(R), tokeny(P)) / liczba_słów(R)`
-
-Rozbieżność między dokładnościami:
-
-`delta_CER = CER_po_kompresji - CER_oryginału`
-
-Wartości dodatnie oznaczają degradację jakości transkrypcji. Dla pustych referencji metryki mogą być niezdefiniowane.
-
-### Referencja TXT
+Pusta referencja z niepustą predykcją daje wartość `null`. Referencja może mieć format:
 
 ```text
 === PAGE 1 ===
-odpowiedź odręczna pierwsza
-odpowiedź odręczna druga
-
+tekst referencyjny pierwszej strony
 === PAGE 2 ===
-odpowiedź z kolejnej strony
+tekst referencyjny drugiej strony
 ```
 
-Uruchomienie z transkrypcją wzorcową:
+Parametr CLI: `--reference reference.txt`.
 
-```bash
-./run.sh --original original.pdf --compressed compressed.pdf \
-  --reference reference.txt --mode handwriting --segments 3 --output wyniki
-```
+## Metryki obrazu
 
-Referencja musi obejmować ten sam typ tekstu, co tryb rozpoznawania (w trybie `handwriting` tylko pismo ręczne).
-
-## Metryki wizualne
-
-Aplikacja mierzy RMSE i PSNR na wyrenderowanych stronach RGB, a nie na zakodowanych bajtach obrazów PDF. Zgodność wizualna nie musi przekładać się na zgodność wyników HTR, dlatego warto analizować CER/WER oraz błędy krytyczne (cyfry, symbole, diakrytyki).
-
-## Zalecany pilotaż
-
-Zgromadź reprezentatywną próbę odpowiedzi o różnej czytelności, w tym ołówkiem i ze znakami matematycznymi. Każdą odpowiedź porównaj z transkrypcją ekspercką. Analizuj zmiany CER/WER w parach, a nie wyłącznie na całym dokumencie. Osobno raportuj liczbę pominiętych i nieczytelnych odpowiedzi oraz powtórz HTR dla oceny stabilności modelu.
-
-**Nie używaj automatycznego HTR jako jedynej podstawy oceny pracy studenta.**
+RMSE oblicza się na wyrenderowanych obrazach RGB, w zakresie kanałów 0–255; w JSON zapisywana jest wartość znormalizowana do 0–1. PSNR: `20 × log10(255 / RMSE_raw)`, w decybelach. Dla identycznych obrazów PSNR jest nieskończony i zapisywane jest `null`. Zgodność obrazów nie dowodzi zgodności transkrypcji.
